@@ -43,10 +43,11 @@ function Pack(src, dst) {
     // build dictionary of equal files
     var parts = {};
     applyToDeepPaths(src, function(p){
-        var key = path.basename(p)+'|'+fileHashSync(p);
+        var hash = fileHashSync(p);
+        var key = path.basename(p)+'|'+(hash.toString('base64'));
         var subs = p.replace(src,"");
-        if (parts[key]) parts[key].push(subs);
-        else parts[key] = [subs];
+        if (parts[key]) parts[key].paths.push(subs);
+        else parts[key] = {paths : [subs], hash : hash};
     });
 
     // open pack file
@@ -54,10 +55,14 @@ function Pack(src, dst) {
 
     // write first data of each dict entry to cat file
     Object.keys(parts).forEach(function(key){
-        var paths = parts[key];
+        // Write <MD5:16 bytes>
+        WriteBuffer(cat, parts[key].hash, 16);
+        // Write <length:8 bytes><paths:utf8 str>
+        var paths = parts[key].paths;
         var pathBuffer = new Buffer(paths.join('|'), 'utf8');
         WriteLength(cat, pathBuffer.length);
         fs.writeSync(cat, pathBuffer, 0, pathBuffer.length, null);
+        // Write <length:8 bytes><data:byte array>
         var srcFile = path.resolve(path.join(src, paths[0]));
         var fileSize = fs.statSync(srcFile).size;
         WriteLength(cat, fileSize);
@@ -87,6 +92,10 @@ function WriteLength(fd, length){
     var b = new Buffer(8);
     b.writeIntLE(length, 0, 8);
     fs.writeSync(fd, b, 0, 8, null);
+}
+
+function WriteBuffer(fd, buf, len) {
+    fs.writeSync(fd, buf, 0, len, null);
 }
 
 function WriteFileData(dst, fileToAdd){
@@ -161,6 +170,8 @@ function unpackCat(srcPack, targetPath) {
     var offset = 0;
 
     for(;;){
+        var hash = ReadHash(cat);
+        if (hash == null) {break;}
         var pathLen = ReadLength(cat, buf);
         if (pathLen == 0) {break;}
         var paths = ReadPaths(pathLen, cat, buf);
@@ -172,6 +183,14 @@ function unpackCat(srcPack, targetPath) {
     }
     fs.close(cat);
     fs.unlinkSync(srcPack);
+}
+
+function ReadHash(fd) {
+    var hbuf = new Buffer(16);
+    var rlen = fs.readSync(fd, hbuf, 0, 16, null);
+    if (rlen == 0) return null; // no more file
+    if (rlen !== 16) throw new Error("Malformed file: truncated file set checksum");
+    return hbuf;
 }
 
 function ReadPaths(len, fd, buffer){
