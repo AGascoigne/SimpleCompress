@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "description": "A simple compression agent with Node and .Net clients",
   "main": "index.js",
-  "bin": {"sc":"./index.js"},
+  "bin": {"sz":"bin/sz"},
   "preferGlobal":true,
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

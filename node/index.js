@@ -5,34 +5,40 @@ var zlib = require('zlib');
 var path = require('path');
 var crypto = require('crypto')
 
-var args = process.argv.slice(2);
-if (args.length != 3) { ShowUsageAndExit(); }
-
-var src = path.resolve(args[1]);
-var dst = path.resolve(args[2]);
-
-// Only need to check this once
 var isWin = /^win/.test(process.platform);
 
-switch (args[0]) {
-    case "pack":
-        Pack(src, dst);
-        break;
+module.exports = {
+    cli: cli,
+    pack: Pack,
+    unpack: Unpack
+};
 
-    case "unpack":
-        Unpack(src, dst);
-        break;
+function cli() {
+    var args = process.argv.slice(2);
+    if (args.length != 3) { return ShowUsageAndExit(); }
 
-    default:
-        ShowUsageAndExit();
-        break;
+    var src = path.resolve(args[1]);
+    var dst = path.resolve(args[2]);
+
+    switch (args[0]) {
+        case "pack":
+            Pack(src, dst);
+            break;
+
+        case "unpack":
+            Unpack(src, dst);
+            break;
+
+        default:
+            ShowUsageAndExit();
+            break;
+    }
 }
 // end of main program
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function ShowUsageAndExit() {
     console.log("Simple Compress\r    Usage:\r        sc pack <src directory> <target file>\r        sc unpack <src file> <target directory>");
-    process.exit(1);
 }
 
 // recursively scan a directory and pack its contents into an archive
@@ -136,7 +142,7 @@ function fileHashSync(filename){
         sum.update(buf.slice(0, rlen));
     }
     fs.close(fd);
-    return sum.digest('base64');
+    return sum.digest();
 }
 
 // expand an existing package file into a directory structure
