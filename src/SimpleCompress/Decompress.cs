@@ -38,7 +38,10 @@
                     // get all target paths
                     long fileLength;
                     var subPaths = ReadUtf8(fs, pathsLength).Split('|');
-                    if (!ReadLength(fs, out fileLength)) throw new Exception("Malformed file: no length for data");
+                    if (!ReadLength(fs, out fileLength))
+                    {
+                        throw new Exception("Malformed file: no length for data");
+                    }
 
                     // read source into first file
                     var firstPath = dstPath+subPaths[0];
@@ -74,13 +77,16 @@
             File.Delete(tmp);
         }
 
-        static void PutFolder(string path)
+        private static void PutFolder(string path)
         {
             var pinfo = new PathInfo(path);
-            if (pinfo.Parent != null) NativeIO.CreateDirectory(new PathInfo(path).Parent, recursive:true);
+            if (pinfo.Parent != null)
+            {
+                NativeIO.CreateDirectory(new PathInfo(path).Parent, recursive: true);
+            }
         }
 
-        static void CopyLength(Stream fs, string dstFilePath, long fileLength, bool ifExistsOverWrite)
+        private static void CopyLength(Stream fs, string dstFilePath, long fileLength, bool ifExistsOverWrite)
         {
             const int bufSz = 65536;
             var remain = fileLength;
@@ -92,7 +98,10 @@
                 while (remain > bufSz) 
                 {
                     len = fs.Read(buffer, 0, bufSz);
-                    if (len != bufSz) throw new Exception("Malformed file: data truncated");
+                    if (len != bufSz)
+                    {
+                        throw new Exception("Malformed file: data truncated");
+                    }
                     fout.Write(buffer, 0, bufSz);
                     remain -= bufSz;
                 }
@@ -111,7 +120,7 @@
             }
         }
 
-        static string ReadUtf8(Stream fs, long pathsLength)
+        private static string ReadUtf8(Stream fs, long pathsLength)
         {
             var bytes = new byte[pathsLength];
             var len = fs.Read(bytes, 0, (int)pathsLength);
@@ -123,7 +132,7 @@
             return Encoding.UTF8.GetString(bytes);
         }
 
-        static bool ReadLength(Stream fs, out long pathsLength)
+        private static bool ReadLength(Stream fs, out long pathsLength)
         {
             var bytes = new byte[8];
             var len = fs.Read(bytes, 0, 8);
